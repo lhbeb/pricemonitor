@@ -1,11 +1,22 @@
 import { NextResponse } from 'next/server';
 
+const CORS_HEADERS = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET,OPTIONS',
+    'Access-Control-Allow-Headers': '*',
+};
+
+// Handle preflight
+export async function OPTIONS() {
+    return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+}
+
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 async function fetchPage(offset: number, limit: number) {
     const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/products?select=id,slug,title,price,brand,condition,category,images,in_stock,created_at&offset=${offset}&limit=${limit}&order=created_at.desc`,
+        `${SUPABASE_URL}/rest/v1/products?select=id,slug,title,price,brand,condition,category,images,in_stock,created_at,listed_by&offset=${offset}&limit=${limit}&order=created_at.desc`,
         {
             headers: {
                 apikey: SUPABASE_ANON_KEY,
@@ -43,7 +54,10 @@ export async function GET() {
             rest.forEach(page => allProducts.push(...page));
         }
 
-        return NextResponse.json({ products: allProducts, total });
+        return NextResponse.json(
+            { products: allProducts, total },
+            { headers: CORS_HEADERS }
+        );
     } catch (err) {
         console.error('Products fetch error:', err);
         return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 });

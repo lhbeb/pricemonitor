@@ -7,6 +7,7 @@ export type PricePoint = {
     image: string | null;
     in_stock: boolean;
     condition: string;
+    listedBy: string | null;
 };
 
 export type ProductGroup = {
@@ -307,6 +308,7 @@ export function groupProducts(products: Product[]): ProductGroup[] {
             image: product.images?.[0] ?? null,
             in_stock: product.in_stock,
             condition: product.condition ?? '',
+            listedBy: product.listed_by ?? null,
         };
 
         const existing = map.get(key);

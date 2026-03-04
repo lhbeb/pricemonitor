@@ -17,4 +17,5 @@ export type Product = {
     images: string[];
     in_stock: boolean;
     created_at: string;
+    listed_by?: string | null;
 };

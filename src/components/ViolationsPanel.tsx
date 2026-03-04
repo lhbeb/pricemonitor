@@ -12,6 +12,7 @@ interface ViolationRow {
     delta: number;
     deltaDir: 'over' | 'under';
     deltaPct: number;
+    listedBy: string | null;
 }
 
 interface ViolationsPanelProps {
@@ -48,6 +49,7 @@ export default function ViolationsPanel({ groups, fixedPricesMap }: ViolationsPa
                 delta: Math.round(Math.abs(raw)),
                 deltaDir: raw > 0 ? 'over' : 'under',
                 deltaPct: Math.round(pct * 10) / 10,
+                listedBy: listing.listedBy ?? null,
             });
         }
     }
@@ -163,7 +165,7 @@ export default function ViolationsPanel({ groups, fixedPricesMap }: ViolationsPa
                                 <th className="violations-th violations-th-left" style={{ width: '35%' }}>Config</th>
                                 <th className="violations-th" style={{ width: '10%' }}>Fixed</th>
                                 <th className="violations-th" style={{ width: '10%' }}>Actual</th>
-                                <th className="violations-th" style={{ width: '14%' }}>Deviation</th>
+                                <th className="violations-th violations-th-left" style={{ width: '14%' }}>Listed By</th>
                                 <th className="violations-th" style={{ width: '8%' }}>Copy</th>
                             </tr>
                         </thead>
@@ -199,10 +201,10 @@ export default function ViolationsPanel({ groups, fixedPricesMap }: ViolationsPa
                                             </span>
                                         </td>
 
-                                        {/* Deviation */}
-                                        <td className="violations-td violations-td-center">
-                                            <span className={`violations-delta violations-delta-${v.deltaDir}`}>
-                                                {v.deltaDir === 'over' ? '▲' : '▼'} ${v.delta} ({v.deltaPct}%)
+                                        {/* Listed By */}
+                                        <td className="violations-td">
+                                            <span className="violations-config" title={v.listedBy ?? ''}>
+                                                {v.listedBy ?? <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>—</span>}
                                             </span>
                                         </td>
 
