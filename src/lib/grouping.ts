@@ -124,6 +124,8 @@ const KEY_ONLY_STRIP = new Set([
     'amd', 'apu', 'amd apu',
     // Extras in listing titles
     'includes', 'included', 'extras', 'accessories',
+    // Optical zoom descriptors
+    'optical zoom', 'digital zoom', 'zoom', 'optical',
 ]);
 
 // ─── Normalise title → display name ──────────────────────────────────────────
@@ -135,6 +137,9 @@ export function normalizeTitle(title: string): string {
     t = t.replace(/[\uD800-\uDFFF]/g, '');
     t = t.replace(/[\u2600-\u27BF]/g, '');
     t = t.replace(/[^\w\s\/\.]/g, ' ');
+
+    // 1b. Collapse multiple spaces into one (e.g. "Point & Shoot" → "point  shoot" → "point shoot")
+    t = t.replace(/\s+/g, ' ').trim();
 
     // 2. Normalise "wi-fi" → "wi fi" consistently so multi-word matching works
     t = t.replace(/wi[\s-]+fi\b/gi, 'wi fi');
@@ -195,6 +200,9 @@ export function extractGroupKey(normalizedTitle: string): string {
 
     // Strip standalone display type adjectives not identifying the product
     k = k.replace(/\b(anti[- ]?glare|etched glass|matte|hdr)\b/gi, ' ');
+
+    // Strip zoom ratios: "4.2x", "3x", "10x"
+    k = k.replace(/\b\d+(?:\.\d+)?x\b/gi, ' ');
 
     // Strip megapixel tokens: "20mp"
     k = k.replace(/\b\d+mp\b/gi, ' ');
