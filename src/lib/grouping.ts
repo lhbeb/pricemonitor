@@ -1,4 +1,7 @@
 import { Product } from './supabase';
+import { extractModel } from './modelExtractor';
+import { extractSpecs, specsHash } from './specExtractor';
+import { distance } from 'fastest-levenshtein';
 
 export type PricePoint = {
     slug: string;
@@ -67,9 +70,12 @@ const MARKETING_WORDS = new Set([
 // Generic product-type labels — never distinguish a specific product
 const FORM_FACTORS = new Set([
     'point shoot', 'point and shoot', 'digital camera', 'compact camera',
-    'mirrorless camera', 'dslr camera', 'slr', 'mirrorless', 'interchangeable lens',
-    'action camera', 'video camera', 'security camera', 'camera body', 'camera kit',
-    'vlogging camera', 'travel camera',
+    'mirrorless camera', 'dslr camera', 'slr camera', 'slr', 'mirrorless',
+    'interchangeable lens', 'action camera', 'action cam', 'video camera',
+    'security camera', 'camera body', 'camera kit', 'vlogging camera',
+    'travel camera', 'bridge camera', 'fixed lens camera',
+    'cine camera', 'cinema camera', 'handheld cam',
+    '360 camera', 'compact tough', 'modular',
     'smartphone', 'smart phone', 'mobile phone', 'cell phone', 'android phone',
     'tablet pc', 'android tablet', 'laptop computer', 'notebook computer',
     'gaming laptop', 'gaming desktop', 'gaming pc', 'gaming computer',
@@ -83,8 +89,12 @@ const FORM_FACTORS = new Set([
 
 const KEY_ONLY_STRIP = new Set([
     // Sensor / image quality descriptors
-    'aps c', 'aps-c', 'full frame', 'crop sensor',
-    'image stabilization', 'stabilizer', 'stabilization', 'ois',
+    'aps c', 'aps-c', 'full frame', 'crop sensor', 'crop frame',
+    'micro four thirds', 'micro 4 3', 'four thirds', 'mft', 'm43',
+    'medium format', 'large format',
+    'image stabilization', 'stabilizer', 'stabilization', 'ois', 'ibis',
+    // Sensor size notations (1", 1/2.3", etc.) handled by regex, but string forms:
+    '1 inch', '1inch', 'one inch',
     // Common accessories / bundles in listing titles
     'with case', 'with charger', 'with battery', 'with dock',
     'with accessories', 'with box', 'with cable', 'with sd card',
@@ -190,6 +200,57 @@ export function normalizeTitle(title: string): string {
 export function extractGroupKey(normalizedTitle: string): string {
     let k = normalizedTitle.toLowerCase();
 
+    // ── Brand-specific normalisations ──────────────────────────────────────
+    // Sony: "alpha 7 iv" / "alpha7iv" → "a7 iv"
+    k = k.replace(/\balpha\s*(\d)/gi, 'a$1');
+
+    // Sony ZV-E / ZV-1 aliases — already handled by model number preservation
+
+    // Canon: strip leading "eos " so "eos r5" = "r5" in key context
+    // (only strip when followed by a model identifier, not as a standalone word)
+    k = k.replace(/\beos\s+(?=[a-z0-9])/gi, '');
+
+    // Panasonic: "panasonic lumix" → "lumix" so bare "lumix s5" merges
+    k = k.replace(/\bpanasonic\s+lumix\b/gi, 'lumix');
+    k = k.replace(/\bpanasonic\s+(?=lumix)/gi, '');
+
+    // OM System / Olympus equivalence
+    k = k.replace(/\bom system\b/gi, 'om');
+    k = k.replace(/\bolympus\b/gi, 'om');
+
+    // Nikon: "z 6" → "z6", "z 7" → "z7" (space between letter and number)
+    k = k.replace(/\b(z)\s+(\d+)\b/gi, '$1$2');
+
+    // Fujifilm: "x t5" → "xt5", "x-t5" → "xt5" (already handled by special char removal)
+    k = k.replace(/\b(x)[- ](t|h|s|e|pro|100)(\d*)/gi, '$1$2$3');
+
+    // Generation alias normalisation: "mk2" / "mk ii" / "mkii" → "mark ii"
+    k = k.replace(/\bmk\.?\s*ii\b/gi, 'mark ii');
+    k = k.replace(/\bmk\.?\s*iii\b/gi, 'mark iii');
+    k = k.replace(/\bmk\.?\s*iv\b/gi, 'mark iv');
+    k = k.replace(/\bmk\.?\s*(\d+)\b/gi, (_, n) => `mark ${n}`);
+    // "2nd edition", "v2", "version 2" → strip (too ambiguous to normalise)
+    k = k.replace(/\bv(\d+)\b/gi, 'mark $1'); // v2 → mark 2 for cameras
+
+    // Sensor size notations — strip: "1/2.3", "1/1.7", '1"'
+    k = k.replace(/\b1\/\d+\.?\d*["″]?\b/g, ' ');
+    k = k.replace(/\b1["″]\b/g, ' ');
+
+    // ── Canon compact camera model number cleanup ───────────────────────────
+    // Strip trailing suffix letters directly attached to Canon model numbers:
+    // "sx740hs" → "sx740", "sx740inchs" → "sx740", "sx740inc" → "sx740"
+    // Handles Canon HS (High Speed) and IS (Image Stabilizer) suffixes + garbled variants
+    k = k.replace(/\b(sx|ixus|elph|a)(\d{2,4})(hs|is|ef|inc|inchs|hs|in)\b/gi, '$1$2');
+
+    // General: strip 2-3 letter alpha suffixes from any 3-4 digit camera model number
+    // Only strip known noise suffixes (hs, is) to avoid breaking Sony A6600 → A6 etc.
+    k = k.replace(/\b([a-z]{1,3})(\d{3,4})(hs|is)\b/gi, '$1$2');
+
+    // Strip garbled leading tokens that contain digits then a known brand name
+    // e.g. "98inchanon" → contains "canon" → strip the garbled prefix
+    k = k.replace(/\b\w*\d+\w*(canon|nikon|sony|fuji|fujifilm|panasonic|olympus|leica)\b/gi,
+        (_, brand) => brand);
+
     // Strip secondary specs (longest first)
     Array.from(KEY_ONLY_STRIP).sort((a, b) => b.length - a.length).forEach(p =>
         k = k.replace(new RegExp(`\\b${escapeRegex(p)}\\b`, 'gi'), ' ')
@@ -255,15 +316,12 @@ function toDisplayName(normalizedTitle: string): string {
     return result.charAt(0).toUpperCase() + result.slice(1);
 }
 
-// ─── Fuzzy token overlap [0–1] ────────────────────────────────────────────────
+// ─── Layer 3: Levenshtein similarity [0–1] ───────────────────────────────────
 
-function tokenOverlap(keyA: string, keyB: string): number {
-    const tokA = new Set(keyA.split(' ').filter(t => t.length > 1));
-    const tokB = new Set(keyB.split(' ').filter(t => t.length > 1));
-    if (tokA.size === 0 || tokB.size === 0) return 0;
-    let shared = 0;
-    tokA.forEach(t => { if (tokB.has(t)) shared++; });
-    return shared / Math.max(tokA.size, tokB.size);
+function levenSimilarity(a: string, b: string): number {
+    if (!a || !b) return 0;
+    const d = distance(a, b);
+    return 1 - d / Math.max(a.length, b.length);
 }
 
 // ─── Merge guard — blocks merges when distinguishing specs differ ─────────────
@@ -306,7 +364,28 @@ export function groupProducts(products: Product[]): ProductGroup[] {
 
     for (const product of products) {
         const normalized = normalizeTitle(product.title);
-        const key = extractGroupKey(normalized);
+
+        // ── Layer 1: Model extraction → primary key ───────────────────────────
+        let key: string;
+        let displayName: string;
+
+        const modelMatch = extractModel(normalized);
+        if (modelMatch && modelMatch.model) {
+            // ── Layer 2: Spec extraction → config sub-key ─────────────────────
+            const specs = extractSpecs(normalized);
+            const hash = specsHash(specs);
+            key = [modelMatch.brand, modelMatch.model, hash]
+                .filter(Boolean).join(' ').trim();
+            // Display name: use the model + specs as a clean readable label
+            displayName = toDisplayName(
+                [modelMatch.brand, modelMatch.model, hash].filter(Boolean).join(' ')
+            );
+        } else {
+            // Fallback to existing rule-based key for unrecognised products
+            key = extractGroupKey(normalized);
+            displayName = toDisplayName(normalized);
+        }
+
         if (!key || key.trim().length < 3) continue;
 
         const listing: PricePoint = {
@@ -328,7 +407,7 @@ export function groupProducts(products: Product[]): ProductGroup[] {
         } else {
             map.set(key, {
                 key,
-                normalizedName: toDisplayName(normalized),
+                normalizedName: displayName,
                 listingCount: 1,
                 prices: [product.price],
                 minPrice: 0, maxPrice: 0, avgPrice: 0,
@@ -339,7 +418,9 @@ export function groupProducts(products: Product[]): ProductGroup[] {
         }
     }
 
-    // ── Fuzzy post-merge: 74% overlap threshold + canMerge guard ─────────────
+    // ── Layer 3: Levenshtein fuzzy merge — catches near-identical keys ──────────
+    // Threshold 0.88 is intentionally tighter than the old 0.74 token overlap
+    // because keys are now short model identifiers, not full titles.
     const keys = Array.from(map.keys());
     const merged = new Set<string>();
 
@@ -351,8 +432,8 @@ export function groupProducts(products: Product[]): ProductGroup[] {
             if (merged.has(keys[j])) continue;
             const groupB = map.get(keys[j])!;
 
-            const overlap = tokenOverlap(keys[i], keys[j]);
-            if (overlap >= 0.74 && canMerge(keys[i], keys[j])) {
+            const sim = levenSimilarity(keys[i], keys[j]);
+            if (sim >= 0.88 && canMerge(keys[i], keys[j])) {
                 const [primary, secondary] = groupA.listingCount >= groupB.listingCount
                     ? [groupA, groupB] : [groupB, groupA];
                 const secondaryKey = primary === groupA ? keys[j] : keys[i];
