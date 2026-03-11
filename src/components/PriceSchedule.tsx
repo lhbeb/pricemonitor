@@ -48,7 +48,7 @@ export default function PriceSchedule({
         });
     }, [groups, search, sortCol, sortDir]);
 
-    const totalFixedValue = groups.reduce((s, g) => s + g.suggestedFixedPrice * g.listingCount, 0);
+
     const groupsWithSpread = groups.filter(g => g.priceRange > 0).length;
 
     function fmt(n: number) {
@@ -85,12 +85,7 @@ export default function PriceSchedule({
                             <span className="schedule-stat-val">{groupsWithSpread}</span>
                             <span className="schedule-stat-label">With spread</span>
                         </div>
-                        <div className="schedule-stat">
-                            <span className="schedule-stat-val" style={{ color: 'var(--accent-2)' }}>
-                                {fmt(totalFixedValue)}
-                            </span>
-                            <span className="schedule-stat-label">Total fixed value</span>
-                        </div>
+
                         <div className="schedule-stat">
                             <span className="schedule-stat-val" style={{ color: allSaved ? 'var(--green)' : 'var(--yellow)' }}>
                                 {savedCount}/{groups.length}

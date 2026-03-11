@@ -65,7 +65,7 @@ export async function loadAllPrices(): Promise<Record<string, SavedPriceRecord>>
 
 // ─── Save / update a batch of price records (upsert) ─────────────────────────
 
-export async function savePrices(records: SavedPriceRecord[]): Promise<void> {
+export async function savePrices(records: SavedPriceRecord[], overwrite = false): Promise<void> {
     if (records.length === 0) return;
     const body = records.map(r => ({
         config_key: r.configKey,
@@ -73,11 +73,14 @@ export async function savePrices(records: SavedPriceRecord[]): Promise<void> {
         fixed_price: r.fixedPrice,
         saved_at: r.savedAt,
     }));
+    // overwrite=false  → INSERT … ON CONFLICT DO NOTHING (existing prices protected)
+    // overwrite=true   → INSERT … ON CONFLICT DO UPDATE  (admin force-sync via curl)
+    const resolution = overwrite ? 'resolution=merge-duplicates' : 'resolution=ignore-duplicates';
     const res = await fetch(`${PRICE_DB_URL}/rest/v1/price_rules`, {
         method: 'POST',
         headers: {
             ...BASE_HEADERS,
-            Prefer: 'resolution=merge-duplicates',
+            Prefer: resolution,
         },
         body: JSON.stringify(body),
     });

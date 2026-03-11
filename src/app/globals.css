@@ -138,9 +138,7 @@ body {
   gap: 12px;
   flex-wrap: wrap;
   justify-content: center;
-  padding: 20px 24px;
-  max-width: 1440px;
-  margin: 0 auto;
+  padding: 20px 0;
 }
 
 .stat-chip {
@@ -853,9 +851,7 @@ body {
 
 /* ── Price Schedule Section ─────────────────────────────────── */
 .schedule-section {
-  margin: 20px auto 24px;
-  padding: 0 24px;
-  max-width: 1440px;
+  margin: 20px 0 24px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
@@ -1103,9 +1099,7 @@ body {
 
 /* ── Violations Panel ───────────────────────────────────────── */
 .violations-section {
-  margin: 0 auto 20px;
-  padding: 0 24px;
-  max-width: 1440px;
+  margin: 0 0 20px;
 }
 
 .violations-header {
@@ -1436,4 +1430,190 @@ body {
   .grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* ── Price Change Log ──────────────────────────────────────────────────────── */
+
+.price-log-section {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  margin: 0 0 24px;
+  overflow: hidden;
+}
+
+.price-log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  cursor: pointer;
+  user-select: none;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+
+.price-log-header:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.price-log-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+.price-log-icon {
+  font-size: 18px;
+}
+
+.price-log-badge {
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 99px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.price-log-chevron {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.price-log-tabs {
+  display: flex;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 3px;
+}
+
+.price-log-tab {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.price-log-tab:hover {
+  color: var(--text-primary);
+}
+
+.price-log-tab.active {
+  background: rgba(99, 102, 241, 0.2);
+  color: #818cf8;
+}
+
+.price-log-body {
+  overflow-x: auto;
+}
+
+.price-log-empty {
+  padding: 32px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.price-log-empty code {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 12px;
+}
+
+.price-log-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  table-layout: fixed;
+}
+
+.price-log-table th {
+  padding: 10px 16px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.price-log-table td {
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  vertical-align: middle;
+}
+
+.price-log-table tr:last-child td {
+  border-bottom: none;
+}
+
+.price-log-table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.price-log-name {
+  color: var(--text-primary);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.price-log-count {
+  color: #818cf8;
+  font-weight: 700;
+  font-size: 14px;
+  text-align: center;
+}
+
+.price-log-delta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.price-log-old,
+.price-log-old-cell {
+  color: #f87171;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+
+.price-log-old-cell {
+  padding: 10px 16px;
+}
+
+.price-log-arrow {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.price-log-new,
+.price-log-new-cell {
+  color: var(--green);
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+
+.price-log-new-cell {
+  padding: 10px 16px;
+}
+
+.price-log-time {
+  color: var(--text-muted);
+  font-size: 12px;
 }
