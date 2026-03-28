@@ -18,8 +18,15 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-const PRICE_DB_URL = process.env.NEXT_PUBLIC_PRICE_DB_URL!;
-const PRICE_DB_KEY = process.env.NEXT_PUBLIC_PRICE_DB_ANON_KEY!;
+const PRICE_DB_URL = process.env.NEXT_PUBLIC_PRICE_DB_URL;
+const PRICE_DB_KEY = process.env.NEXT_PUBLIC_PRICE_DB_ANON_KEY;
+
+if (!PRICE_DB_URL || !PRICE_DB_KEY) {
+    throw new Error(
+        '[priceStorage] Missing env vars: NEXT_PUBLIC_PRICE_DB_URL and/or NEXT_PUBLIC_PRICE_DB_ANON_KEY. ' +
+        'Make sure they are defined in .env.local and restart the dev server.'
+    );
+}
 
 const BASE_HEADERS = {
     apikey: PRICE_DB_KEY,

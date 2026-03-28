@@ -7,6 +7,7 @@ import { loadAllPrices, savePrices, SavedPriceRecord } from '@/lib/priceStorage'
 import PriceSchedule from '@/components/PriceSchedule';
 import ViolationsPanel from '@/components/ViolationsPanel';
 import PriceChangeLog from '@/components/PriceChangeLog';
+import AdminConsole from '@/components/AdminConsole';
 
 export default function DashboardPage() {
     const [products, setProducts] = useState<Product[]>([]);
@@ -86,7 +87,7 @@ export default function DashboardPage() {
                             <div className="logo-sub">Product Configuration Dashboard</div>
                         </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         {lastFetched && (
                             <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                                 Updated {lastFetched.toLocaleTimeString()}
@@ -102,6 +103,16 @@ export default function DashboardPage() {
                         }}>
                             {loading ? '⟳ Loading…' : '⟳ Refresh'}
                         </button>
+                        <AdminConsole
+                            groups={allGroups}
+                            fixedPricesMap={fixedPricesMap}
+                            onAfterFix={() => {
+                                // Re-fetch products from the products DB (now all at fixed price)
+                                fetchProducts();
+                                // Re-load saved prices from the price DB (source of truth, never changes)
+                                loadAllPrices().then(setSavedPrices);
+                            }}
+                        />
                     </div>
                 </div>
             </header>
